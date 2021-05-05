@@ -1,0 +1,23 @@
+{% extends 'index.html' %}
+{% block middle %}
+    {{ message }}
+    {% for i, c in tets.items %}                                                {# dict "Название теста" : балл студента, чтобы было проще отобразить #}
+        <h2>Тест&ensp;"{{ i }}"&emsp;<i style="color: brown">Ваш балл:{{ c }}</i></h2>
+        {% for j in voprosi %}
+            {% if j.poll == i %}
+            <p>{{ j }}&emsp;<br>Ваш ответ:
+                {% for m in answers %}                                          {# Получение ответов студента #}
+                    {% if m.question == j %}&emsp;"{{ m }}"
+                    {% endif %}
+                {% endfor %}
+
+                {% for right in all_answers_for_student_question %}             {# Получение правильных ответов #}
+                            {% if right.question == j and right.is_correct %}
+                                Правильный ответ:&emsp;"{{ right }}"
+                            {% endif %}
+                        {% endfor %}
+            </p>
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+{% endblock %}

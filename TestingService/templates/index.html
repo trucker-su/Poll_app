@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+{% block middle %}
+    <h1>All tests</h1>
+    <p>{{ message }}</p>
+    {% for poll in list_polls %}
+        <p><a href="{{ poll.id }}">{{ poll.name }}</a></p>
+    {% endfor %}
+    <p><a href="/result">Твоя статистика</a></p>
+{% endblock %}
+</body>
+</html>

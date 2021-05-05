@@ -1,0 +1,10 @@
+{% extends 'index.html' %}
+{% block middle %}
+    <h1>Students result</h1>
+    {% for student, poll_points in poll_point.items %}
+        <h2>{{ student }}</h2>
+        {% for poll, point in poll_points.items %}
+            <p>{{ poll }}&emsp;<i>points:{{ point }}</i>&emsp;</p>
+            {% endfor %}
+    {% endfor %}
+{% endblock %}

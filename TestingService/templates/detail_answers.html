@@ -1,0 +1,17 @@
+{% extends 'index.html' %}
+
+{% block middle %}
+    <h1>Test {{ question.poll }}</h1>
+    <form method="post">
+        {% csrf_token %}
+        <h2>{{ question }}</h2>
+        <p>{{ message }}</p>
+        {% for ans in question.answer_set.all %}
+            <input type="radio" name="ans" id="ans{{ forloop.counter }}" value="{{ ans }}"/>
+            <label for="ans{{ forloop.counter }}">{{ ans }}</label><br><br>
+        {% endfor %}
+        <input type="submit" value="answer the question">
+    </form>
+    <p><a href="/{{question.poll.id }}">Назад к списку вопросов</a></p>
+    <p><a href="/result">Твоя статистика</a></p>
+{% endblock %}

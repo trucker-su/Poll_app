@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+{% block middle %}
+    <h1>Students result</h1>
+    <p>{{ message }}</p>
+    {% for user in users %}
+        <p><a href="{% url 'ListPolls' %}">{{ user }}</a></p>
+    {% endfor %}
+{% endblock %}
+</body>
+</html>

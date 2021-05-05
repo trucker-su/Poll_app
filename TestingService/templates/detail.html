@@ -1,0 +1,8 @@
+{% extends 'index.html' %}
+{% block middle %}
+     <h1>Test {{ poll }}</h1>
+    {% for quest in poll.question_set.all %}
+        <p><a href="/question/{{ quest.id }}">{{ quest }}</a></p>
+    {% endfor %}
+    <p><a href="/result">Твоя статистика</a></p>
+{% endblock %}

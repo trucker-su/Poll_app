@@ -1,0 +1,13 @@
+{% extends 'index.html' %}
+{% block middle %}
+    <h2 align="center">Авторизация</h2>
+    <p>{{ message }}</p>
+    <form method="post">
+    {% csrf_token %}
+        <p>{{form.as_p }}</p>
+    <button type="submit">Авторизоваться</button>
+    </form>
+<p><a href="{% url 'registration_user' %}">Регистрация</a></p>
+
+
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'index.html' %}
+{% block middle %}
+    <h2 align="center">Регистрация</h2>
+    <p>{{ message }}</p>
+    <form method="post">
+    {% csrf_token %}
+        <p>{{ form.username.label }}&emsp;{{ form.username }}</p>
+        <p>{{ form.password1.label }}&emsp;{{ form.password1 }}</p>
+        <p>{{ form.password2.label }}&emsp;{{ form.password2 }}</p>
+        <p>{{ form.is_teacher.label }}&emsp;{{ form.is_teacher }}</p>
+    <button type="submit">Зарегистрироваться</button>
+    </form>
+<p><a href="{% url 'LoginViewAnonUser' %}">Авторизация</a></p>
+
+
+{% endblock %}
