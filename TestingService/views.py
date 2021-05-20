@@ -1,69 +1,62 @@
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.mixins import LoginRequiredMixin
+
+from django.contrib.auth import authenticate, login, REDIRECT_FIELD_NAME
+from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.auth.views import LoginView
-from django.http import HttpResponse, Http404
-from django.shortcuts import render, redirect
+from django.core.exceptions import PermissionDenied
+from django.http import HttpResponseRedirect
+from django.shortcuts import render, redirect, get_object_or_404
 
 # Create your views here.
-from django.urls import reverse
 
 from django.views.generic import ListView, DetailView
 
-from TestingService.forms import RegistrationForm, LoginForm
+from TestingService.forms import RegistrationForm
 from TestingService.models import Poll, Question, Answer, StudentAnswer, MyUser
 
 
-class ListPolls(LoginRequiredMixin, ListView):
+class PermissionForStudents(PermissionRequiredMixin):
+
+    def has_permission(self):
+        return not self.request.user.is_teacher
+
+
+class PermissionForTeachers(PermissionRequiredMixin):
+
+    def has_permission(self):
+        return self.request.user.is_teacher
+
+
+class ListPolls(LoginRequiredMixin, PermissionForStudents, ListView):
     """Отображение списка тестов для студента"""
     template_name = 'index.html'
     context_object_name = 'list_polls'
     login_url = 'LoginViewAnonUser'
-
-    def get_queryset(self):
-        if not self.request.user.is_teacher:
-            obj = Poll.objects.all()
-            return obj
-        obj = []
-        return obj
-
-    def get(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        if queryset:
-            return super().get(request, *args, **kwargs)
-        return redirect('DetailStudent')
+    model = Poll
 
 
-class ListQuestions(LoginRequiredMixin, DetailView):
+class ListQuestions(LoginRequiredMixin, PermissionForStudents, DetailView):
     """ Отображение списка вопросов для студента"""
     template_name = 'detail.html'
     login_url = 'LoginViewAnonUser'
-
-    def get_queryset(self):
-        if not self.request.user.is_teacher:
-            obj = Poll.objects.all()
-            return obj
-        raise Http404
+    model = Poll
 
 
-class ListAnswers(LoginRequiredMixin, DetailView):
+class ListAnswers(LoginRequiredMixin, PermissionForStudents, DetailView):
     """Тест с вариантами ответов для студента"""
     template_name = 'detail_answers.html'
     model = Question
     login_url = 'LoginViewAnonUser'
 
-    def get_queryset(self):
-        if not self.request.user.is_teacher:
-            obj = Question.objects.all()
-            return obj
-        raise Http404
-
     def post(self, request, *args, **kwargs):
         selected_answer = request.POST.get('ans', )
         if selected_answer:
-            if not self.model.objects.filter(answer__studentanswer__student=request.user, text=Answer.objects.get(
-                    answer_text=selected_answer).question.text).exists():
-                otvet = StudentAnswer.objects.create(answer=Answer.objects.get(answer_text=selected_answer),
-                                                     student=request.user, votes=0)
+            if not StudentAnswer.objects.filter(student=request.user, answer__question=self.get_object()).exists():
+                otvet = StudentAnswer.objects.create(answer=Answer.objects.get(answer_text=selected_answer,
+                                                                               question=self.get_object()),
+                                                     student=request.user,
+                                                     votes=0)
                 otvet.save()
                 if otvet.answer.is_correct:
                     otvet.votes = 1
@@ -81,31 +74,28 @@ class ListAnswers(LoginRequiredMixin, DetailView):
         return self.get(request, *args, **kwargs)
 
 
-class ResultPollsStudent(LoginRequiredMixin, ListView):
+class ResultPollsStudent(LoginRequiredMixin, PermissionForStudents, ListView):
     """Результаты пройденных тестов для конкретного студента, отображается статистика только для самого себя"""
     template_name = 'studentsresult.html'
     login_url = 'LoginViewAnonUser'
 
     def get_queryset(self):
-        if not self.request.user.is_teacher:
-            obj = Answer.objects.filter(studentanswer__student=self.request.user)  # думал добавить
-            # UserPassesTestMixin, но из-за этой строки смысла не вижу
-            if obj:
-                return obj
-
-            self.extra_context = {'message': 'Вы не прошли ни одного теста'}
-            return self.get
-        raise Http404
+        obj = Answer.objects.filter(studentanswer__student=self.request.user)
+        if obj:
+            return obj
+        self.extra_context = {'message': 'Вы не прошли ни одного теста'}
+        return self.get
 
     def get_context_data(self, **kwargs):
         context = super(ResultPollsStudent, self).get_context_data(**kwargs)
         context['answers'] = self.get_queryset()
-        context['testi'] = set(Poll.objects.filter(question__answer__studentanswer__student=self.request.user))
+        context['tests'] = set(Poll.objects.filter(question__answer__studentanswer__student=self.request.user))
         context['voprosi'] = Question.objects.filter(answer__studentanswer__student=self.request.user)
-        context['tets'] = {}
-        for i in context['testi']:
-            context['tets'][i] = len(
-                StudentAnswer.objects.filter(votes=1, student=self.request.user, answer__question__poll=i))
+        context['test_point'] = {}
+        for test in context['tests']:
+            context['test_point'][test] = StudentAnswer.objects.filter(votes=1,
+                                                                       student=self.request.user,
+                                                                       answer__question__poll=test).count()
         context['all_answers_for_student_question'] = Answer.objects.filter()
         return context
 
@@ -126,38 +116,84 @@ def registration_user(request):
                     return redirect('ListPolls')
                 authenticate(new_user)
                 login(request, new_user)
-                return HttpResponse('Надо редирект на главную если учитель')
+                return redirect('ListStudent')
             message = form.errors
             form = RegistrationForm()
             return render(request, 'registration.html', {'message': message, 'form': form})
         form = RegistrationForm()
         return render(request, 'registration.html', {'form': form})
-    raise Http404
+    raise PermissionDenied
 
 
-class LoginViewAnonUser(LoginView):
+class LoginViewAnonUser(LoginView, LoginRequiredMixin):
     """Авторизация пользователей"""
-    form_class = LoginForm
-    redirect_authenticated_user = '/'
+    form_class = AuthenticationForm
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return self.handle_no_permission()
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        is_teacher = form.cleaned_data.get('is_teacher')
-        return super(LoginViewAnonUser, self).form_valid(form)
+        is_teacher = form.user_cache.is_teacher
+        if is_teacher:
+            login(self.request, form.get_user())
+            return HttpResponseRedirect('/studentpolls/')
+        login(self.request, form.get_user())
+        return HttpResponseRedirect('/')
 
 
-class DetailStudent(LoginRequiredMixin, ListView):
+class ListStudent(LoginRequiredMixin, PermissionForTeachers, ListView):
     """Просмотр результатов студентов для учителя"""
     template_name = 'result_for_teacher.html'
+    queryset = MyUser.objects.filter(is_teacher=False)
+    context_object_name = 'all_students'
+
+
+class DetailStudentPollsResult(LoginRequiredMixin, PermissionForTeachers, DetailView):
+    template_name = 'everypollresultforstudent.html'
     model = MyUser
 
     def get_context_data(self, **kwargs):
-        context = super(DetailStudent, self).get_context_data(**kwargs)
-        context['students'] = self.model.objects.filter(is_teacher=False)
-        poll_point = {}
-        for i in context['students']:
-            poll_point[i] = {}
-            for m in Poll.objects.filter(question__answer__studentanswer__student__username=i):
-                poll_point[i][m] = len(StudentAnswer.objects.filter(votes=1, student=i, answer__question__poll=m))
-        context['poll_point'] = poll_point
+        context = super().get_context_data(**kwargs)
+        polls = set(Poll.objects.filter(question__answer__studentanswer__student=self.object))
+        context['polls'] = {}
+        for poll in polls:
+            context['polls'][poll] = StudentAnswer.objects.filter(answer__question__poll=poll,
+                                                                  student=self.object,
+                                                                  answer__is_correct=True).count()
+
         return context
 
+
+def teacher_required(function=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url=None):
+    """
+    Decorator for views that checks that the user is logged in, redirecting
+    to the log-in page if necessary.
+    """
+    actual_decorator = user_passes_test(
+        lambda u: u.is_authenticated and u.is_teacher,
+        login_url=login_url,
+        redirect_field_name=redirect_field_name
+    )
+    if function:
+        return actual_decorator(function)
+    return actual_decorator
+
+
+@teacher_required
+def result_student_poll(request, pk_1, pk_2):
+    """Просмотр результатов студента (кол-во баллов, правильные и неправильные ответы, вопросы)"""
+    poll = get_object_or_404(Poll, pk=pk_1)
+    stud = get_object_or_404(MyUser, pk=pk_2)
+    questions = Question.objects.filter(poll=poll, answer__studentanswer__student=stud)
+    student_answer = StudentAnswer.objects.filter(answer__question__poll=poll, student=stud)
+    correct_answers = Answer.objects.filter(is_correct=True, question__poll=poll, studentanswer__student=stud)
+    if request.method == 'POST':
+        StudentAnswer.objects.filter(answer__question__poll=poll, student=stud).delete()
+    return render(request, 'detail_polls_result_with_answers.html', {'poll': poll,
+                                                                     'stud': stud,
+                                                                     'questions': questions,
+                                                                     'student_answer': student_answer,
+                                                                     'correct_answers': correct_answers,
+                                                                     })

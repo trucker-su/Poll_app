@@ -41,6 +41,7 @@ class StudentAnswer(models.Model):
     answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     votes = models.IntegerField(default=0)
+    created_at = models.DateField(auto_now=True)
 
     def __str__(self):
-        return self.answer.question.text
+        return self.answer.answer_text

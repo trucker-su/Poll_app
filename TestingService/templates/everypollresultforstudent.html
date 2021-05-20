@@ -1,0 +1,11 @@
+{% extends 'index.html' %}
+
+{%  block middle %}
+    {% if not polls  %}<h2>Студент не прошел ни одного теста</h2>{% endif %}
+    {% for poll, point in polls.items %}
+        <p><a href="/studentpolls/users/{{ object.id }}/poll/{{ poll.id }}">{{ poll }}</a>
+            &emsp;{{ point }}/{{ poll.question_set.all.count }}</p>
+    {% endfor %}
+
+
+{% endblock %}

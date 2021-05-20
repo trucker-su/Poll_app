@@ -1,0 +1,13 @@
+{% extends 'index.html' %}
+{% block middle %}
+    <h2 align="center">Пожалуйста введите Email</h2>
+    <p>{{ message }}</p>
+    <form method="post">
+    {% csrf_token %}
+        <p>{{ form.email.label }}&emsp;{{ form.email }}</p>
+    <button type="submit">Зарегистрироваться</button>
+    </form>
+<p><a href="{% url 'LoginViewAnonUser' %}">Авторизация</a></p>
+
+
+{% endblock %}

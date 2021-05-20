@@ -1,10 +1,7 @@
 {% extends 'index.html' %}
 {% block middle %}
-    <h1>Students result</h1>
-    {% for student, poll_points in poll_point.items %}
-        <h2>{{ student }}</h2>
-        {% for poll, point in poll_points.items %}
-            <p>{{ poll }}&emsp;<i>points:{{ point }}</i>&emsp;</p>
-            {% endfor %}
+    <h1>Результаты студента</h1>
+    {% for student in all_students %}
+        <p><a href="/studentpolls/users/{{ student.id }}">{{ student}}</a></p>
     {% endfor %}
 {% endblock %}

@@ -1,7 +1,7 @@
 {% extends 'index.html' %}
 {% block middle %}
     {{ message }}
-    {% for i, c in tets.items %}                                                {# dict "Название теста" : балл студента, чтобы было проще отобразить #}
+    {% for i, c in test_point.items %}                                                {# dict "Название теста" : балл студента, чтобы было проще отобразить #}
         <h2>Тест&ensp;"{{ i }}"&emsp;<i style="color: brown">Ваш балл:{{ c }}</i></h2>
         {% for j in voprosi %}
             {% if j.poll == i %}

@@ -1,0 +1,11 @@
+{% extends 'index.html' %}
+
+{% block middle %}
+    <h2>Тесты пройденные студентами сегодня:</h2>
+    {% for poll in obj %}
+    <br>{{ poll }}
+    {% endfor %}
+
+
+
+{% endblock %}

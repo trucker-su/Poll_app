@@ -1,0 +1,21 @@
+{% extends 'index.html' %}
+{% block  middle  %}
+    <h2>Тест "{{ poll }}"&emsp;Студент:&emsp;{{ stud }}&emsp;Балл:{{ correct_answers.count }}</h2>
+    {% for question in questions %}
+        {% for answer in student_answer %}
+            {% if answer.answer.question == question %}
+                <p>{{ question }}</p>&emsp;<i>Ответ студента:</i>&emsp;{{ answer }}&emsp;
+                <i>Правильный ответ:&emsp;</i>
+                {% for correct in question.answer_set.all %}
+                    {% if correct.is_correct %}
+                        {{ correct }}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            {% endfor %}
+    {% endfor %}
+    <form method="post">
+    {% csrf_token %}
+    <br><button type="submit">Сбросить результаты теста</button>
+    </form>
+{% endblock %}
